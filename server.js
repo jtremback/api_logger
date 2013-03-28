@@ -105,10 +105,11 @@ var chunkWrangler = function() {
 
 		//Turn into real object, process and append
 		end: function() {
-			var jason = JSON.parse(wholethang);
+			var jason = JSON.parse(wholethang),
+				firstTid = jason[1].tid;
 
 			//Get only the properties needed
-			var trimmer = function(input) {
+			var summarizer = function(input) {
 				return {
 					tid: input.tid,
 					price: input.price,
@@ -118,19 +119,21 @@ var chunkWrangler = function() {
 			}
 
 			//Turn back into string and append
-			var trimmed = JSON.stringify(jason.map(trimmer));
+			var summarized = JSON.stringify(jason.map(summarizer)),
+				trimmed = summarized.slice(1, -1);
+
 			
 			fs.appendFile('logg.txt', trimmed, function (err) {
-			  	if (err) throw err;
-			  	console.log('The "data to append" was appended to file!');
-				setTimeout(logCycle(jason[1].tid), 1000);
+				if (err) throw err;
+				console.log('The "data to append" was appended to file!');
+				setTimeout(logCycle(firstTid), 1000);
 			});
 			
-			console.log(jason[1].tid);
+			console.log(firstTid);
 
 		}
 	}
 
 }();
 
-logCycle();
+logCycle(0);

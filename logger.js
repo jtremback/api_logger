@@ -5,7 +5,7 @@ var http = require('http'),
 
 
 
-var download = function(config) {
+var download = function() {
 
   var options = {
     host: config.host,
@@ -37,9 +37,13 @@ var committer = function() {
   //when add ends, 
   add.on('close', function (code) {
     commit = spawn('git', ['commit', '-m', '"' + stamp + '"'], {cwd: config.out_dir});
-    commit.on('stdout', function (code) {
-      console.log(code);
-      if (code === 0) { console.log('Commit worked.') };
+    commit.on('close', function (code) {
+      if (code === 0) {
+        console.log("Commit");
+      } else {
+        console.log("No commit");
+      }
+      setTimeout(download, config.interval);
     });
   });
 };
@@ -86,7 +90,7 @@ var filePacker = function(json) {
 
 
 //Assemble, process and append
-var chunkWrangler = function() {
+var chunkWrangler = (function() {
   var wholethang = false;
 
   return {
@@ -101,11 +105,13 @@ var chunkWrangler = function() {
     },
 
     //Turn into real object
-    end: function(config) {
+    end: function() {
       var json = JSON.parse(wholethang);
       filePacker(json);
+      wholethang = false;
     }
   }
-}();
+})();
 
-download(config);
+download();
+

@@ -1,5 +1,6 @@
 {
   "host": "data.mtgox.com",
   "path": "/api/1/BTCUSD/depth/fetch",
-  "out_dir": "./logrepo/"
+  "out_dir": "./logrepo/",
+  "interval": "900000"
 }

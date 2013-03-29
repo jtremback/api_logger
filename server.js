@@ -3,20 +3,24 @@
 //save to disk
 //Get api stored id onwards
 //repeat
-var balUtil = require('bal-util'),
-  http = require("http"),
+var http = require("http"),
   fs = require('fs'),
   spawn = require('child_process').spawn;
 
+var config = {
+  "host": "data.mtgox.com",
+  "path": "/api/1/BTCUSD/depth/fetch",
+  "out_dir": "../api_logger_extrepo/"
+}
 
-//Get the depth and log it
-//Trim and save them
-var logSnap = function(path) {
+
+
+var logSnap = function(config) {
 
   var options = {
-    host: 'data.mtgox.com',
+    host: config.host,
     headers: {'user-agent': 'Mozilla/5.0'},
-    path: path
+    path: config.path
   };
 
   http.get(options, function(res) {
@@ -25,12 +29,39 @@ var logSnap = function(path) {
       chunkWrangler.add(chunk);
     })
     .on('end', function() {
-      chunkWrangler.end();
+      chunkWrangler.end(config);
     });
   }).on('error', function(e) {
     console.log("Got error: " + e.message);
   });
 };
+
+
+
+var committer = function(config) {
+  var stamp = (new Date()).getTime(),
+  add = spawn('git', ["add", "."], {cwd: config.out_dir}),
+  commit = spawn('git', ["commit", '-m', stamp], {cwd: config.out_dir});
+
+  add.stdout.on('data', function (data) {
+    console.log('stdout: ' + data);
+  });
+
+  add.on('close', function (code) {
+    console.log('child process exited with code ' + code);
+  });
+
+  commit.stdout.on('data', function (data) {
+    console.log('stdout: ' + data);
+  });
+
+  commit.on('close', function (code) {
+    console.log('child process exited with code ' + code);
+  });
+
+};
+
+
 
 //Assemble, process and append
 var chunkWrangler = function() {
@@ -48,12 +79,13 @@ var chunkWrangler = function() {
     },
 
     //Turn into real object
-    end: function() {
+    end: function(config) {
       var json = JSON.parse(wholethang);
 
       //Verify, summarize and append
       var summarizer = function(depthArrayName, json) {
         console.log(depthArrayName);
+
         //Get only the properties needed
         var summLogic = function(input) {
           return {
@@ -75,10 +107,12 @@ var chunkWrangler = function() {
         var summarized = JSON.stringify(newObj),
           newlined = summarized.replace(/,/g, ',\n');
 
-        fs.appendFile('log.txt', newlined, function (err) {
+        fs.appendFile(config.out_dir + 'log.txt', newlined, function (err) {
           if (err) throw err;
           console.log('The "data to append" was appended to file!');
 
+          //commit to repo
+          committer(config);
         });
       } else {
         console.log("something wrong with api");
@@ -87,4 +121,6 @@ var chunkWrangler = function() {
   }
 }();
 
-logSnap("/api/1/BTCUSD/depth/fetch");
+
+
+logSnap(config);
